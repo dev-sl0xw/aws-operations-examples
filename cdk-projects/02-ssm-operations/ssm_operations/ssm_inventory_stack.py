@@ -67,7 +67,7 @@ class SsmInventoryStack(Stack):
             removal_policy=RemovalPolicy.DESTROY,
             auto_delete_objects=True,
             # インベントリデータは機密情報を含む可能性があるため、暗号化を有効化
-            encryption=s3.BucketEncryption.S3_MANAGED,
+            encryption=s3.BucketEncryption.KMS_MANAGED,
             # バージョニングを有効にして変更履歴を保持
             versioned=True,
             # パブリックアクセスを完全にブロック
@@ -170,9 +170,9 @@ class SsmInventoryStack(Stack):
             s3_destination=ssm.CfnResourceDataSync.S3DestinationProperty(
                 bucket_name=inventory_bucket.bucket_name,
                 sync_format="JsonSerDe",
-                region=self.region,
+                bucket_region=self.region,
                 # プレフィックスを設定して、他のデータと区別する
-                prefix="ssm-inventory",
+                bucket_prefix="ssm-inventory",
             ),
         )
 

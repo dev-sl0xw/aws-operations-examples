@@ -149,10 +149,11 @@ class BackupAutomationStack(Stack):
         # 保持期間: 35日間（5週間分）
         # コールドストレージ移行: 10日後
         #
-        # 35日間の保持期間は、月次の振り返りや監査に十分な期間であり、
+        # 100日間の保持期間は、月次の振り返りや監査に十分な期間であり、
         # かつコスト的にも現実的なバランスです。
         # 10日後のコールドストレージ移行により、直近のバックアップは
         # すぐにリストアでき、古いものはコスト最適化されます。
+        # 注意: deleteAfterはmoveToColdStorageAfterより最低90日後でなければならない
         self.plan.add_rule(
             backup.BackupPlanRule(
                 rule_name="DailyBackupRule",
@@ -163,8 +164,8 @@ class BackupAutomationStack(Stack):
                 # バックアップの開始から完了までの最大ウィンドウ
                 start_window=Duration.hours(1),
                 completion_window=Duration.hours(2),
-                # 35日間保持
-                delete_after=Duration.days(35),
+                # 100日間保持（コールドストレージ移行後90日以上必要）
+                delete_after=Duration.days(100),
                 # 10日後にコールドストレージへ移行（コスト最適化）
                 move_to_cold_storage_after=Duration.days(10),
                 # クロスリージョンコピー: DRリージョンへバックアップを複製
@@ -183,7 +184,7 @@ class BackupAutomationStack(Stack):
                             dr_vault_arn,
                         ),
                         move_to_cold_storage_after=Duration.days(10),
-                        delete_after=Duration.days(35),
+                        delete_after=Duration.days(100),
                     )
                 ],
             )

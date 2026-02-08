@@ -10,6 +10,7 @@ from aws_cdk import (
     Stack,
     Size,
     CfnOutput,
+    CfnTag,
     aws_ec2 as ec2,
     aws_dlm as dlm,
     aws_iam as iam,
@@ -145,7 +146,7 @@ class EbsSnapshotsStack(Stack):
                 resource_types=["VOLUME"],
                 # Backup=true タグが付いた全てのEBSボリュームが対象
                 target_tags=[
-                    dlm.CfnLifecyclePolicy.CfnTag(key="Backup", value="true")
+                    CfnTag(key="Backup", value="true")
                 ],
                 schedules=[
                     dlm.CfnLifecyclePolicy.ScheduleProperty(
@@ -165,10 +166,10 @@ class EbsSnapshotsStack(Stack):
                         ),
                         # スナップショットに自動的にタグを付与
                         tags_to_add=[
-                            dlm.CfnLifecyclePolicy.CfnTag(
+                            CfnTag(
                                 key="CreatedBy", value="DLM"
                             ),
-                            dlm.CfnLifecyclePolicy.CfnTag(
+                            CfnTag(
                                 key="Type", value="DailySnapshot"
                             ),
                         ],

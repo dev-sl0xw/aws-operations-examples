@@ -143,7 +143,7 @@ class DetectiveControlsStack(Stack):
             bucket=trail_bucket,
             # CloudWatch Logsへの配信（リアルタイム分析用）
             send_to_cloud_watch_logs=True,
-            cloud_watch_logs_group=trail_log_group,
+            cloud_watch_log_group=trail_log_group,
             # ログファイル検証: SHA-256ハッシュチェーンによる改ざん防止
             # 攻撃者がログを改ざんしても、ハッシュの不整合で検出可能
             enable_file_validation=True,

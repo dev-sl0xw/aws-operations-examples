@@ -200,7 +200,12 @@ class ParameterStoreStack(Stack):
             name="/app/production/database/password",
             value="CHANGE_ME_AFTER_DEPLOY",
             description="Production database password (encrypted with KMS)",
-            key_id=parameter_encryption_key.key_id,
+            # 注意: CfnParameter (AWS::SSM::Parameter) はKMS KeyIdプロパティを
+            # サポートしていません。SecureStringはデフォルトでaws/ssmマネージドキーを使用します。
+            # カスタムKMSキーでの暗号化が必要な場合は、デプロイ後にAWS CLIで更新してください：
+            #   aws ssm put-parameter --name /app/production/database/password \
+            #     --value "actual-password" --type SecureString \
+            #     --key-id <parameter_encryption_key.key_id>
         )
 
         # ====================================================================
