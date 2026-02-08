@@ -290,6 +290,12 @@ def handler(event, context):
     - NON_COMPLIANT: 1つ以上の必須タグが欠落している
     - NOT_APPLICABLE: タグをサポートしないリソースタイプ
     """
+    # エラーハンドラからも参照できるよう関数スコープで初期化
+    resource_type = 'AWS::::Account'
+    resource_id = 'UNKNOWN'
+    result_token = event.get('resultToken', '')
+    timestamp = '2024-01-01T00:00:00.000Z'
+
     try:
         invoking_event = json.loads(event['invokingEvent'])
         result_token = event['resultToken']
@@ -298,6 +304,7 @@ def handler(event, context):
         configuration_item = invoking_event.get('configurationItem', {})
         resource_type = configuration_item.get('resourceType', '')
         resource_id = configuration_item.get('resourceId', '')
+        timestamp = configuration_item.get('configurationItemCaptureTime', timestamp)
 
         # リソースが削除された場合は評価対象外
         if configuration_item.get('configurationItemStatus') == 'ResourceDeleted':
@@ -348,16 +355,17 @@ def handler(event, context):
     except Exception as e:
         print(f'Error evaluating Config rule: {e}')
         # エラー発生時は NOT_APPLICABLE として報告し、評価を中断しない
+        # 関数スコープで初期化した変数を使用するため安全に参照できる
         try:
             config_client.put_evaluations(
                 Evaluations=[{
-                    'ComplianceResourceType': configuration_item.get('resourceType', 'AWS::::Account') if 'configuration_item' in dir() else 'AWS::::Account',
-                    'ComplianceResourceId': configuration_item.get('resourceId', 'UNKNOWN') if 'configuration_item' in dir() else 'UNKNOWN',
+                    'ComplianceResourceType': resource_type,
+                    'ComplianceResourceId': resource_id,
                     'ComplianceType': 'NOT_APPLICABLE',
                     'Annotation': f'Error during evaluation: {str(e)[:200]}',
-                    'OrderingTimestamp': configuration_item.get('configurationItemCaptureTime', '2024-01-01T00:00:00.000Z') if 'configuration_item' in dir() else '2024-01-01T00:00:00.000Z',
+                    'OrderingTimestamp': timestamp,
                 }],
-                ResultToken=event.get('resultToken', ''),
+                ResultToken=result_token,
             )
         except Exception as inner_e:
             print(f'Failed to report evaluation error: {inner_e}')

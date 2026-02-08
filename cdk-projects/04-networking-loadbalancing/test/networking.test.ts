@@ -232,6 +232,43 @@ describe('AutoScalingStack', () => {
     });
   });
 
+  test('ASGインスタンスSGはALB SGからのみHTTP受信を許可する', () => {
+    // SecurityGroupIngress で CidrIp (0.0.0.0/0) ではなく
+    // SourceSecurityGroupId (ALB SG参照) が使われていることを確認
+    template.hasResourceProperties('AWS::EC2::SecurityGroup', {
+      SecurityGroupIngress: Match.arrayWith([
+        Match.objectLike({
+          IpProtocol: 'tcp',
+          FromPort: 80,
+          ToPort: 80,
+          SourceSecurityGroupId: Match.anyValue(),
+        }),
+      ]),
+    });
+
+    // CidrIp: 0.0.0.0/0 の HTTP ルールが存在しないことを確認
+    const resources = template.toJSON().Resources;
+    const securityGroups = Object.values(resources).filter(
+      (r: any) => r.Type === 'AWS::EC2::SecurityGroup'
+    );
+    for (const sg of securityGroups) {
+      const ingress = (sg as any).Properties.SecurityGroupIngress || [];
+      for (const rule of ingress) {
+        if (rule.FromPort === 80 && rule.ToPort === 80) {
+          expect(rule.CidrIp).toBeUndefined();
+        }
+      }
+    }
+  });
+
+  test('ASGはIMDSv2を強制する', () => {
+    template.hasResourceProperties('AWS::AutoScaling::LaunchConfiguration', {
+      MetadataOptions: {
+        HttpTokens: 'required',
+      },
+    });
+  });
+
   test('ASG名のCfnOutputが存在する', () => {
     template.hasOutput('AsgName', {
       Export: {

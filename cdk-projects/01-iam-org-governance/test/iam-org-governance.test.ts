@@ -87,6 +87,42 @@ describe('IamRolesStack', () => {
     });
   });
 
+  test('CI/CD role has scoped ECR permissions with separate auth token policy', () => {
+    // GetAuthorizationToken はリソースレベル権限非対応のためワイルカード必須
+    // CDK は単一アクションを文字列として出力するため string でマッチ
+    template.hasResourceProperties('AWS::IAM::Policy', {
+      PolicyDocument: {
+        Statement: Match.arrayWith([
+          Match.objectLike({
+            Sid: 'EcrAuthToken',
+            Effect: 'Allow',
+            Action: 'ecr:GetAuthorizationToken',
+            Resource: '*',
+          }),
+        ]),
+      },
+    });
+
+    // リポジトリ操作はアカウントスコープに限定されていること（Fn::JoinでARN構築）
+    template.hasResourceProperties('AWS::IAM::Policy', {
+      PolicyDocument: {
+        Statement: Match.arrayWith([
+          Match.objectLike({
+            Sid: 'EcrRepositoryAccess',
+            Effect: 'Allow',
+            Resource: {
+              'Fn::Join': Match.arrayWith([
+                Match.arrayWith([
+                  'arn:aws:ecr:',
+                ]),
+              ]),
+            },
+          }),
+        ]),
+      },
+    });
+  });
+
   test('outputs role ARNs', () => {
     template.hasOutput('AdminRoleArnOutput', {});
     template.hasOutput('DeveloperRoleArnOutput', {});
@@ -231,6 +267,19 @@ describe('ConfigRulesStack', () => {
       TargetId: 'AWS-DisableS3BucketPublicReadWrite',
       Automatic: true,
     });
+  });
+
+  test('Config Lambda includes error handling', () => {
+    const resources = template.toJSON().Resources;
+    const lambdaFn = Object.values(resources).find(
+      (r: any) => r.Type === 'AWS::Lambda::Function' &&
+                   r.Properties.FunctionName === 'config-required-tags-checker'
+    ) as any;
+    expect(lambdaFn).toBeDefined();
+    const code = lambdaFn.Properties.Code.ZipFile;
+    expect(code).toContain('try:');
+    expect(code).toContain('except Exception as e:');
+    expect(code).toContain('NOT_APPLICABLE');
   });
 
   test('outputs Config rule names', () => {
