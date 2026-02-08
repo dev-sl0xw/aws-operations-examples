@@ -55,4 +55,8 @@ parameter_store_stack = ParameterStoreStack(
     description="SSM Parameter Store with hierarchical parameters and KMS encryption",
 )
 
+cdk.Tags.of(app).add("Environment", "Learning")
+cdk.Tags.of(app).add("Project", "SsmOperations")
+cdk.Tags.of(app).add("ManagedBy", "CDK")
+
 app.synth()

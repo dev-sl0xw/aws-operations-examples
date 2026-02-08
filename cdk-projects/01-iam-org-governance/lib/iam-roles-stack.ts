@@ -473,12 +473,24 @@ export class IamRolesStack extends cdk.Stack {
     );
 
     // ECRへのイメージプッシュ（コンテナデプロイ用）
+    // GetAuthorizationToken はリソースレベルの権限をサポートしないため resources: ['*'] が必要
     cicdRole.addToPolicy(
       new iam.PolicyStatement({
-        sid: 'EcrAccess',
+        sid: 'EcrAuthToken',
         effect: iam.Effect.ALLOW,
         actions: [
           'ecr:GetAuthorizationToken',
+        ],
+        resources: ['*'],
+      })
+    );
+
+    // その他のECRアクションはリポジトリスコープに限定
+    cicdRole.addToPolicy(
+      new iam.PolicyStatement({
+        sid: 'EcrRepositoryAccess',
+        effect: iam.Effect.ALLOW,
+        actions: [
           'ecr:BatchCheckLayerAvailability',
           'ecr:GetDownloadUrlForLayer',
           'ecr:BatchGetImage',
@@ -487,7 +499,7 @@ export class IamRolesStack extends cdk.Stack {
           'ecr:UploadLayerPart',
           'ecr:CompleteLayerUpload',
         ],
-        resources: ['*'],
+        resources: [`arn:aws:ecr:${this.region}:${this.account}:repository/*`],
       })
     );
 

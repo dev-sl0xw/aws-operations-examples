@@ -220,7 +220,6 @@ export class OrgScpStack extends cdk.Stack {
             'iam:CreateUser',
             'iam:CreateLoginProfile',
             'iam:UpdateLoginProfile',
-            'iam:CreateAccessKey',
           ],
           Resource: '*',
           // 例外: 自動化パイプラインによるサービスアカウントの作成は

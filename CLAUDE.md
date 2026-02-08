@@ -39,6 +39,8 @@ scripts/             # セットアップヘルパー
 - TypeScript: `npm test` (Jest + ts-jest)
 - Python: `python -m pytest tests/`
 - All CDK stacks must have corresponding test assertions
+- CDK renders logical IDs as `{ Ref: ... }` — use `Match.anyValue()` for dynamic references in assertions
+- When asserting S3 encryption, check actual algorithm: `S3_MANAGED` → `AES256`, `KMS_MANAGED` → `aws:kms`
 
 ## Commands
 - Build TS project: `cd cdk-projects/<project> && npm run build`
@@ -46,6 +48,8 @@ scripts/             # セットアップヘルパー
 - Test Python project: `cd cdk-projects/<project> && python -m pytest tests/`
 - Synth TS project: `cd cdk-projects/<project> && npx cdk synth`
 - Synth Python project: `cd cdk-projects/<project> && npx cdk synth --app ".venv/bin/python3 app.py"`
+- Test all TS projects: `for p in 01-iam-org-governance 03-monitoring-observability 04-networking-loadbalancing; do (cd cdk-projects/$p && npm test); done`
+- Test all Python projects: `for p in 02-ssm-operations 05-security-edge 06-storage-backup; do (cd cdk-projects/$p && .venv/bin/python3 -m pytest tests/); done`
 
 ## Important Notes
 - Never deploy (`cdk deploy`) without explicit user confirmation - this is a learning project
@@ -71,6 +75,8 @@ After cloning, all projects need setup - `node_modules/` and `.venv/` are gitign
 - Python CDK projects require `source .venv/bin/activate` before ANY cdk/pytest command
 - `cdk.context.json` is gitignored - AZ lookups will re-run on fresh clones
 - Python `cdk synth` ignores venv activation — use `--app ".venv/bin/python3 app.py"` to ensure correct interpreter
+- Python venv pip install: `source .venv/bin/activate && pip install` may install to global — prefer `.venv/bin/pip install -r requirements.txt`
+- Python CDK L1 constructs (CfnXxx): property names differ from CloudFormation — always verify with `context7` or CDK API docs
 
 ## Agent Patterns
 - Prefer Task tool subagents (`run_in_background: true`) over experimental agent teams for parallel work
@@ -81,6 +87,13 @@ After cloning, all projects need setup - `node_modules/` and `.venv/` are gitign
 ## Available Skills
 - `/cdk-synth-check` - Run synth + tests on all 6 CDK projects
 - `/add-study-section <topic>` - Generate new study note from template
+
+## Security Conventions
+- Security Groups: reference other SGs instead of `Peer.anyIpv4()` where possible
+- EC2/ASG: always set `requireImdsv2: true` and use token-based metadata in UserData
+- IAM policies: scope ECR/S3/KMS actions to specific resources — split wildcard-required actions (e.g., `ecr:GetAuthorizationToken`) from resource-scoped ones
+- RemovalPolicy.DESTROY on audit/security resources: add `⚠️ WARNING` comment, recommend RETAIN for production
+- All stacks: verify Environment, Project, ManagedBy tags in app entry point
 
 ## Language Guidelines
 - Study notes: 日本語 (technical terms in English)

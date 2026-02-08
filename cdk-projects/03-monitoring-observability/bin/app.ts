@@ -35,3 +35,9 @@ new EventBridgeAutomationStack(app, 'EventBridgeAutomationStack', {
 new XRayTracingStack(app, 'XRayTracingStack', {
   description: 'X-Ray tracing for Lambda and API Gateway to enable distributed tracing',
 });
+
+cdk.Tags.of(app).add('Environment', 'Learning');
+cdk.Tags.of(app).add('Project', 'MonitoringObservability');
+cdk.Tags.of(app).add('ManagedBy', 'CDK');
+
+app.synth();

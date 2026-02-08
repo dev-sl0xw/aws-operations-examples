@@ -3,6 +3,7 @@ import { Template, Match } from 'aws-cdk-lib/assertions';
 import { VpcDesignStack } from '../lib/vpc-design-stack';
 import { AlbNlbStack } from '../lib/alb-nlb-stack';
 import { AutoScalingStack } from '../lib/autoscaling-stack';
+import { Route53FailoverStack } from '../lib/route53-failover-stack';
 
 // ============================================================================
 // ネットワーク & ロードバランシング テストスイート
@@ -175,6 +176,7 @@ describe('AutoScalingStack', () => {
     });
     autoScalingStack = new AutoScalingStack(app, 'TestAutoScalingStack', {
       vpc: vpcStack.vpc,
+      alb: albNlbStack.alb,
       albTargetGroup: albNlbStack.albTargetGroup,
     });
     template = Template.fromStack(autoScalingStack);
@@ -236,5 +238,71 @@ describe('AutoScalingStack', () => {
         Name: 'NetworkingAsgName',
       },
     });
+  });
+});
+
+describe('Route53FailoverStack', () => {
+  let app: cdk.App;
+  let vpcStack: VpcDesignStack;
+  let route53Stack: Route53FailoverStack;
+  let template: Template;
+
+  beforeEach(() => {
+    app = new cdk.App();
+    vpcStack = new VpcDesignStack(app, 'TestVpcStack4');
+    route53Stack = new Route53FailoverStack(app, 'TestRoute53FailoverStack', {
+      vpc: vpcStack.vpc,
+    });
+    template = Template.fromStack(route53Stack);
+  });
+
+  test('プライベートホストゾーンが作成される', () => {
+    template.hasResourceProperties('AWS::Route53::HostedZone', {
+      Name: 'internal.example.com.',
+      VPCs: Match.arrayWith([
+        Match.objectLike({
+          VPCId: Match.anyValue(),
+        }),
+      ]),
+    });
+  });
+
+  test('加重ルーティングレコードが存在する', () => {
+    template.hasResourceProperties('AWS::Route53::RecordSet', {
+      Name: 'app.internal.example.com.',
+      Type: 'A',
+      Weight: 80,
+      SetIdentifier: 'primary',
+    });
+
+    template.hasResourceProperties('AWS::Route53::RecordSet', {
+      Name: 'app.internal.example.com.',
+      Type: 'A',
+      Weight: 20,
+      SetIdentifier: 'secondary',
+    });
+  });
+
+  test('ヘルスチェックが作成される', () => {
+    template.hasResourceProperties('AWS::Route53::HealthCheck', {
+      HealthCheckConfig: Match.objectLike({
+        Type: 'HTTP',
+        Port: 80,
+        ResourcePath: '/health',
+        FailureThreshold: 3,
+      }),
+    });
+  });
+
+  test('CfnOutputが存在する', () => {
+    template.hasOutput('HostedZoneId', {
+      Export: {
+        Name: 'NetworkingHostedZoneId',
+      },
+    });
+
+    template.hasOutput('HostedZoneName', {});
+
+    template.hasOutput('HealthCheckId', {});
   });
 });

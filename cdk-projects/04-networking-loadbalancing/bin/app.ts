@@ -56,6 +56,7 @@ const route53Stack = new Route53FailoverStack(app, 'Route53FailoverStack', {
 const autoScalingStack = new AutoScalingStack(app, 'AutoScalingStack', {
   env,
   vpc: vpcStack.vpc,
+  alb: albNlbStack.alb,
   albTargetGroup: albNlbStack.albTargetGroup,
   description: 'Auto Scaling Group、スケーリングポリシー、ライフサイクルフックの構築',
 });
@@ -63,5 +64,6 @@ const autoScalingStack = new AutoScalingStack(app, 'AutoScalingStack', {
 // タグの一括適用
 // 全てのスタックに共通のタグを付与する。
 // コスト管理、リソース管理、コンプライアンスに活用する。
+cdk.Tags.of(app).add('Environment', 'Learning');
 cdk.Tags.of(app).add('Project', 'NetworkingLoadBalancing');
 cdk.Tags.of(app).add('ManagedBy', 'CDK');

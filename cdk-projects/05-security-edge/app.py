@@ -55,4 +55,8 @@ acm_stack = AcmCertificatesStack(
     description="ACM certificate management for TLS/HTTPS encryption",
 )
 
+cdk.Tags.of(app).add("Environment", "Learning")
+cdk.Tags.of(app).add("Project", "SecurityEdge")
+cdk.Tags.of(app).add("ManagedBy", "CDK")
+
 app.synth()

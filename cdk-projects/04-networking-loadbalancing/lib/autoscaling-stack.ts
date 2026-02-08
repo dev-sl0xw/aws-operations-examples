@@ -53,6 +53,7 @@ import { Construct } from 'constructs';
 
 export interface AutoScalingStackProps extends cdk.StackProps {
   vpc: ec2.Vpc;
+  alb: elbv2.ApplicationLoadBalancer;
   albTargetGroup: elbv2.ApplicationTargetGroup;
 }
 
@@ -62,7 +63,7 @@ export class AutoScalingStack extends cdk.Stack {
   constructor(scope: Construct, id: string, props: AutoScalingStackProps) {
     super(scope, id, props);
 
-    const { vpc, albTargetGroup } = props;
+    const { vpc, alb, albTargetGroup } = props;
 
     // ========================================================================
     // IAMロール — EC2インスタンスに付与する権限
@@ -86,9 +87,9 @@ export class AutoScalingStack extends cdk.Stack {
       allowAllOutbound: true, // アウトバウンドは全許可（パッチ取得等）
     });
 
-    // ALBからのHTTPトラフィックのみ許可
+    // ALBからのHTTPトラフィックのみ許可（ALBのセキュリティグループからのみ受信）
     instanceSg.addIngressRule(
-      ec2.Peer.anyIpv4(),
+      ec2.Peer.securityGroupId(alb.connections.securityGroups[0].securityGroupId),
       ec2.Port.tcp(80),
       'ALBからのHTTPトラフィックを許可',
     );
@@ -119,8 +120,10 @@ export class AutoScalingStack extends cdk.Stack {
       'HEALTH_EOF',
       '',
       '# インスタンスメタデータをトップページに表示（デバッグ用）',
-      'INSTANCE_ID=$(curl -s http://169.254.169.254/latest/meta-data/instance-id)',
-      'AZ=$(curl -s http://169.254.169.254/latest/meta-data/placement/availability-zone)',
+      '# IMDSv2トークンを取得（セキュリティ強化のためIMDSv2を使用）',
+      'TOKEN=$(curl -s -X PUT "http://169.254.169.254/latest/api/token" -H "X-aws-ec2-metadata-token-ttl-seconds: 21600")',
+      'INSTANCE_ID=$(curl -s -H "X-aws-ec2-metadata-token: $TOKEN" http://169.254.169.254/latest/meta-data/instance-id)',
+      'AZ=$(curl -s -H "X-aws-ec2-metadata-token: $TOKEN" http://169.254.169.254/latest/meta-data/placement/availability-zone)',
       'cat > /usr/share/nginx/html/index.html <<HTML_EOF',
       '<!DOCTYPE html>',
       '<html><body>',
@@ -156,6 +159,7 @@ export class AutoScalingStack extends cdk.Stack {
       role: instanceRole,
       securityGroup: instanceSg,
       userData,
+      requireImdsv2: true,
 
       // 【容量設定】
       // minCapacity: 最小インスタンス数。0にすると全停止のリスクがある。

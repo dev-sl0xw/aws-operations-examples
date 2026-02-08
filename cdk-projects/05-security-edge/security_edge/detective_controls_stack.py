@@ -103,6 +103,7 @@ class DetectiveControlsStack(Stack):
                 ),
             ],
             # スタック削除時の動作: 本番では RETAIN を推奨
+            # WARNING: Use RemovalPolicy.RETAIN in production
             removal_policy=RemovalPolicy.DESTROY,
             auto_delete_objects=True,
         )

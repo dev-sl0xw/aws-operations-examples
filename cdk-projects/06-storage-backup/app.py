@@ -8,6 +8,8 @@ Storage & Backup CDK Application
 3. BackupAutomationStack: AWS Backupによる一元的バックアップ管理（日次・月次ルール）
 """
 
+import os
+
 import aws_cdk as cdk
 
 from storage_backup.s3_lifecycle_stack import S3LifecycleStack
@@ -20,8 +22,8 @@ app = cdk.App()
 # デプロイ先の環境設定
 # 実際の運用では、環境変数やcdk.jsonのcontextから取得することを推奨
 env = cdk.Environment(
-    account="123456789012",
-    region="us-east-1",
+    account=os.environ.get("CDK_DEFAULT_ACCOUNT", "123456789012"),
+    region=os.environ.get("CDK_DEFAULT_REGION", "us-east-1"),
 )
 
 # DRリージョン（クロスリージョンコピー先）
@@ -55,5 +57,9 @@ BackupAutomationStack(
     dr_region=dr_region,
     env=env,
 )
+
+cdk.Tags.of(app).add("Environment", "Learning")
+cdk.Tags.of(app).add("Project", "StorageBackup")
+cdk.Tags.of(app).add("ManagedBy", "CDK")
 
 app.synth()

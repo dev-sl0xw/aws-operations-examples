@@ -103,6 +103,7 @@ class BackupAutomationStack(Stack):
             alias="alias/backup-vault-key",
             description="KMS key for AWS Backup vault encryption",
             enable_key_rotation=True,
+            # WARNING: Use RemovalPolicy.RETAIN in production
             removal_policy=RemovalPolicy.DESTROY,
         )
 
@@ -119,6 +120,7 @@ class BackupAutomationStack(Stack):
             "BackupVault",
             backup_vault_name="storage-backup-vault",
             encryption_key=self.backup_key,
+            # WARNING: Use RemovalPolicy.RETAIN in production
             removal_policy=RemovalPolicy.DESTROY,
         )
 

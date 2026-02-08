@@ -133,6 +133,7 @@ class ParameterStoreStack(Stack):
             "ParameterEncryptionKey",
             description="KMS key for encrypting SSM SecureString parameters",
             enable_key_rotation=True,
+            # WARNING: Use RemovalPolicy.RETAIN in production
             removal_policy=RemovalPolicy.DESTROY,
             # エイリアスを設定してキーを識別しやすくする
             alias="ssm-parameter-encryption-key",
@@ -279,7 +280,9 @@ class ParameterStoreStack(Stack):
                                 "",
                                 "# タイムスタンプ付きでログを記録",
                                 "TIMESTAMP=$(date '+%Y-%m-%d %H:%M:%S')",
-                                "REGION=$(curl -s http://169.254.169.254/latest/meta-data/placement/region)",
+                                "# IMDSv2トークンを取得（セキュリティ強化のためIMDSv2を使用）",
+                                'TOKEN=$(curl -s -X PUT "http://169.254.169.254/latest/api/token" -H "X-aws-ec2-metadata-token-ttl-seconds: 21600")',
+                                'REGION=$(curl -s -H "X-aws-ec2-metadata-token: $TOKEN" http://169.254.169.254/latest/meta-data/placement/region)',
                                 "",
                                 "# SSM Parameter Storeからパラメータを取得",
                                 "# --with-decryption フラグにより、SecureStringも復号化して取得できる",

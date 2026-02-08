@@ -64,6 +64,7 @@ class SsmInventoryStack(Stack):
             self,
             "InventoryDataBucket",
             bucket_name=None,  # CDKが一意の名前を自動生成
+            # WARNING: Use RemovalPolicy.RETAIN in production
             removal_policy=RemovalPolicy.DESTROY,
             auto_delete_objects=True,
             # インベントリデータは機密情報を含む可能性があるため、暗号化を有効化
