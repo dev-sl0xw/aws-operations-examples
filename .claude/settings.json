@@ -1,0 +1,28 @@
+{
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "FILE=\"$CLAUDE_FILE_PATH\"; case \"$FILE\" in */cdk-projects/0[134]-*/lib/*.ts|*/cdk-projects/0[134]-*/bin/*.ts) DIR=$(echo \"$FILE\" | sed 's|/lib/.*|/|;s|/bin/.*|/|'); cd \"$DIR\" && npx tsc --noEmit 2>&1 | head -20;; */cdk-projects/0[256]-*/*.py) echo 'Python file edited - run pytest to validate';; esac",
+            "timeout": 15000
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "FILE=\"$CLAUDE_FILE_PATH\"; case \"$FILE\" in *.env|*.env.*|*credentials*|*secret*) echo 'BLOCKED: Sensitive file edit blocked' && exit 1;; esac",
+            "timeout": 5000
+          }
+        ]
+      }
+    ]
+  }
+}

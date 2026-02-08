@@ -1,0 +1,38 @@
+graph LR
+    subgraph Sources["Event Sources"]
+        EC2[EC2 Instances]
+        Lambda[Lambda Functions]
+        API[API Gateway]
+        App[Application Logs]
+    end
+
+    subgraph Monitoring["Monitoring Layer"]
+        CW[CloudWatch Metrics]
+        CWL[CloudWatch Logs]
+        XRay[AWS X-Ray]
+        EB[EventBridge]
+    end
+
+    subgraph Actions["Response Actions"]
+        Alarm[CloudWatch Alarm]
+        SNS[SNS Notification]
+        LambdaAction[Lambda Remediation]
+        SSM[SSM Automation]
+        ASG[Auto Scaling]
+    end
+
+    EC2 --> CW
+    Lambda --> CW
+    App --> CWL
+    API --> XRay
+    Lambda --> XRay
+    EC2 --"State Change"--> EB
+
+    CW --> Alarm
+    CWL --"Metric Filter"--> CW
+    Alarm --> SNS
+    EB --> SNS
+    EB --> LambdaAction
+    SNS --> LambdaAction
+    LambdaAction --> SSM
+    Alarm --> ASG

@@ -1,0 +1,31 @@
+graph TB
+    Internet[Internet] --> IGW[Internet Gateway]
+    IGW --> ALB[ALB - Public Subnet]
+
+    subgraph VPC["VPC 10.0.0.0/16"]
+        subgraph AZ1["Availability Zone 1"]
+            PubSub1["Public Subnet<br/>10.0.1.0/24<br/>ALB, NAT GW"]
+            PrivSub1["Private Subnet<br/>10.0.3.0/24<br/>EC2, Lambda"]
+            IsoSub1["Isolated Subnet<br/>10.0.5.0/24<br/>RDS, ElastiCache"]
+        end
+        subgraph AZ2["Availability Zone 2"]
+            PubSub2["Public Subnet<br/>10.0.2.0/24<br/>ALB, NAT GW"]
+            PrivSub2["Private Subnet<br/>10.0.4.0/24<br/>EC2, Lambda"]
+            IsoSub2["Isolated Subnet<br/>10.0.6.0/24<br/>RDS, ElastiCache"]
+        end
+
+        NAT1[NAT Gateway] --> IGW
+        NAT2[NAT Gateway] --> IGW
+
+        S3EP["S3 Gateway<br/>Endpoint"]
+        SSMEP["SSM Interface<br/>Endpoint"]
+    end
+
+    ALB --> PrivSub1
+    ALB --> PrivSub2
+    PrivSub1 --> NAT1
+    PrivSub2 --> NAT2
+    PrivSub1 --> IsoSub1
+    PrivSub2 --> IsoSub2
+    PrivSub1 --> S3EP
+    PrivSub1 --> SSMEP
