@@ -27,6 +27,30 @@ import { Construct } from 'constructs';
 // 正常なエンドポイントにのみトラフィックを送る。
 // これにより、アプリケーションレベルのフェイルオーバーを実現できる。
 // ============================================================================
+// ============================================================================
+// Route 53 페일오버 스택 — DNS 설계
+// ============================================================================
+//
+// 【프라이빗 호스트 존이란】
+// VPC 내에서만 유효한 DNS 존. 인터넷에서는 해석할 수 없습니다.
+// 마이크로서비스 간 통신에 내부 DNS를 사용하면:
+//   - IP 주소 하드코딩을 피할 수 있음
+//   - 서비스 이동（다른 EC2나 ECS）이 용이해짐
+//   - 환경（dev/staging/prod）별로 같은 DNS 이름으로 다른 리소스를 참조 가능
+//
+// 【가중 라우팅（Weighted Routing）】
+// 같은 DNS 이름에 대한 여러 레코드에 가중치를 설정하여
+// 트래픽을 비율로 분산합니다. 주요 용도:
+//   - 카나리아 배포: 새 버전에 10%, 구 버전에 90%
+//   - A/B 테스트: 변형 A에 50%, B에 50%
+//   - 단계적 마이그레이션: 구 시스템에서 신 시스템으로 점진적으로 트래픽 이전
+//
+// 【헬스 체크의 역할】
+// Route 53의 헬스 체크는 엔드포인트의 건전성을 모니터링합니다.
+// 비정상으로 판정된 엔드포인트에 대한 DNS 해석을 중지하고
+// 정상적인 엔드포인트에만 트래픽을 보냅니다.
+// 이를 통해 애플리케이션 레벨의 페일오버를 실현할 수 있습니다.
+// ============================================================================
 
 export interface Route53FailoverStackProps extends cdk.StackProps {
   vpc: ec2.Vpc;
@@ -48,10 +72,20 @@ export class Route53FailoverStack extends cdk.Stack {
     // 例: api.internal.example.com → プライベートサブネットのALB
     //     db.internal.example.com  → RDSエンドポイント
     //     cache.internal.example.com → ElastiCacheエンドポイント
+    // ========================================================================
+    // 프라이빗 호스트 존 생성
+    // ========================================================================
+    // 【internal.example.com을 내부 도메인으로 사용】
+    // VPC 내 리소스 간 통신에 사용하는 내부 DNS입니다.
+    // 예: api.internal.example.com → 프라이빗 서브넷의 ALB
+    //     db.internal.example.com  → RDS 엔드포인트
+    //     cache.internal.example.com → ElastiCache 엔드포인트
     this.hostedZone = new route53.PrivateHostedZone(this, 'InternalZone', {
       zoneName: 'internal.example.com',
       vpc, // このVPCからのみDNS解決が可能
+      // 이 VPC에서만 DNS 해석이 가능
       comment: '内部サービスディスカバリ用のプライベートホストゾーン',
+      // 내부 서비스 디스커버리용 프라이빗 호스트 존
     });
 
     // ========================================================================
@@ -66,22 +100,40 @@ export class Route53FailoverStack extends cdk.Stack {
     // weight: 80 と weight: 20 の場合、約80%のリクエストがprimaryに、
     // 約20%のリクエストがsecondaryに解決される。
     // 重みの合計値に対する比率でトラフィックが分配される。
+    // ========================================================================
+    // 가중 라우팅 — 80/20 트래픽 분할
+    // ========================================================================
+    // 【유스케이스: 카나리아 배포】
+    // 새 버전의 애플리케이션에 소량의 트래픽（20%）을 보내어
+    // 문제가 없는지 확인한 후 전체를 전환합니다.
+    // 이상이 감지되면 가중치를 0으로 설정하여 즉시 롤백할 수 있습니다.
+    //
+    // 【가중치의 메커니즘】
+    // weight: 80과 weight: 20인 경우 약 80%의 요청이 primary에,
+    // 약 20%의 요청이 secondary에 해석됩니다.
+    // 가중치 합계값에 대한 비율로 트래픽이 분배됩니다.
 
     // プライマリレコード（80%のトラフィック）
+    // 프라이머리 레코드（80%의 트래픽）
     new route53.ARecord(this, 'PrimaryRecord', {
       zone: this.hostedZone,
       recordName: 'app',
       target: route53.RecordTarget.fromIpAddresses('10.0.1.100'),
       // 加重ルーティングの重み: 80（全体の80%）
+      // 가중 라우팅의 가중치: 80（전체의 80%）
       weight: 80,
       // setIdentifier は加重ルーティングで必須。
       // 同じレコード名の複数レコードを区別するための識別子。
+      // setIdentifier는 가중 라우팅에서 필수입니다.
+      // 같은 레코드 이름의 여러 레코드를 구별하기 위한 식별자입니다.
       setIdentifier: 'primary',
       ttl: cdk.Duration.seconds(60),
       comment: 'プライマリエンドポイント — トラフィックの80%を受け取る',
+      // 프라이머리 엔드포인트 — 트래픽의 80%를 수신
     });
 
     // セカンダリレコード（20%のトラフィック）
+    // 세컨더리 레코드（20%의 트래픽）
     new route53.ARecord(this, 'SecondaryRecord', {
       zone: this.hostedZone,
       recordName: 'app',
@@ -90,6 +142,7 @@ export class Route53FailoverStack extends cdk.Stack {
       setIdentifier: 'secondary',
       ttl: cdk.Duration.seconds(60),
       comment: 'セカンダリエンドポイント — カナリアデプロイ用（トラフィックの20%）',
+      // 세컨더리 엔드포인트 — 카나리아 배포용（트래픽의 20%）
     });
 
     // ========================================================================
@@ -104,18 +157,35 @@ export class Route53FailoverStack extends cdk.Stack {
     // 注意: プライベートIPアドレスのヘルスチェックはRoute 53から
     // 直接アクセスできないため、CloudWatchアラームベースの
     // ヘルスチェックを使用する必要がある（ここではパブリックIPの例）。
+    // ========================================================================
+    // Route 53 헬스 체크
+    // ========================================================================
+    // 【헬스 체크의 메커니즘】
+    // Route 53의 헬스 체커（전 세계에 분산 배치）가 정기적으로
+    // 지정된 엔드포인트에 요청을 전송합니다.
+    // 일정 횟수 이상 실패하면「비정상（Unhealthy）」으로 판정하고
+    // 해당 레코드에 대한 DNS 해석을 중지합니다.
+    //
+    // 주의: 프라이빗 IP 주소의 헬스 체크는 Route 53에서
+    // 직접 접근할 수 없으므로 CloudWatch 알람 기반의
+    // 헬스 체크를 사용해야 합니다（여기서는 퍼블릭 IP 예시）.
     const healthCheck = new route53.CfnHealthCheck(this, 'PrimaryHealthCheck', {
       healthCheckConfig: {
         // HTTPヘルスチェック: 指定したパスにGETリクエストを送信
+        // HTTP 헬스 체크: 지정된 경로에 GET 요청을 전송
         type: 'HTTP',
         // ヘルスチェック対象のIPアドレスまたはFQDN
         // 本番環境ではALBのDNS名を指定する
+        // 헬스 체크 대상의 IP 주소 또는 FQDN
+        // 프로덕션 환경에서는 ALB의 DNS 이름을 지정합니다
         fullyQualifiedDomainName: 'example.com',
         port: 80,
         resourcePath: '/health',
         // チェック間隔: 30秒（標準）または10秒（高速、追加料金あり）
+        // 체크 간격: 30초（표준）또는 10초（고속, 추가 요금 발생）
         requestInterval: 30,
         // 異常判定の閾値: 3回連続失敗で異常と判定
+        // 비정상 판정 임계값: 3회 연속 실패로 비정상 판정
         failureThreshold: 3,
       },
       healthCheckTags: [
@@ -132,17 +202,20 @@ export class Route53FailoverStack extends cdk.Stack {
     new cdk.CfnOutput(this, 'HostedZoneId', {
       value: this.hostedZone.hostedZoneId,
       description: 'プライベートホストゾーンのID',
+      // 프라이빗 호스트 존의 ID
       exportName: 'NetworkingHostedZoneId',
     });
 
     new cdk.CfnOutput(this, 'HostedZoneName', {
       value: this.hostedZone.zoneName,
       description: 'プライベートホストゾーンのドメイン名',
+      // 프라이빗 호스트 존의 도메인 이름
     });
 
     new cdk.CfnOutput(this, 'HealthCheckId', {
       value: healthCheck.attrHealthCheckId,
       description: 'Route 53ヘルスチェックのID',
+      // Route 53 헬스 체크의 ID
     });
   }
 }

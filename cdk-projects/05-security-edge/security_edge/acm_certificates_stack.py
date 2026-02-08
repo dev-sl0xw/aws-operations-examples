@@ -1,25 +1,41 @@
 """
 ACM Certificates Stack (TLS証明書管理スタック)
+ACM Certificates Stack (TLS 인증서 관리 스택)
 ==============================================
 
 このスタックは、AWS Certificate Manager (ACM) を使用して
+이 스택은 AWS Certificate Manager (ACM)를 사용하여
 TLS/SSL証明書を管理します。
+TLS/SSL 인증서를 관리합니다.
 
 【なぜHTTPSが必須なのか（通信中データの暗号化）】
+【왜 HTTPS가 필수인가 (전송 중 데이터의 암호화)】
 HTTP通信は暗号化されていないため、以下のリスクがあります：
+HTTP 통신은 암호화되지 않기 때문에 다음과 같은 위험이 있습니다:
 1. 盗聴（Eavesdropping）: ネットワーク上のデータが第三者に読まれる
+1. 도청(Eavesdropping): 네트워크상의 데이터가 제3자에게 읽힘
 2. 改ざん（Tampering）: 通信内容が途中で書き換えられる
+2. 변조(Tampering): 통신 내용이 중간에 변경됨
 3. なりすまし（Impersonation）: 偽サイトにユーザーが誘導される
+3. 위장(Impersonation): 가짜 사이트로 사용자가 유도됨
 
 HTTPS (TLS) はこれらの脅威を暗号化・デジタル署名で防止します。
+HTTPS (TLS)는 이러한 위협을 암호화 및 디지털 서명으로 방지합니다.
 また、最新のブラウザはHTTPサイトに「安全でない」と警告を表示するため、
+또한 최신 브라우저는 HTTP 사이트에 "안전하지 않음" 경고를 표시하므로,
 ユーザー信頼の観点からもHTTPSは必須です。
+사용자 신뢰 관점에서도 HTTPS는 필수입니다.
 
 【ACM証明書のCloudFront制約】
+【ACM 인증서의 CloudFront 제약】
 CloudFrontで使用するACM証明書はus-east-1にデプロイする必要があります。
+CloudFront에서 사용하는 ACM 인증서는 us-east-1에 배포해야 합니다.
 これはCloudFrontの設定管理がus-east-1で行われるためです。
+이는 CloudFront의 설정 관리가 us-east-1에서 수행되기 때문입니다.
 ALB等のリージョナルサービスでは、そのリソースと同じリージョンの
+ALB 등의 리전 서비스에서는 해당 리소스와 동일한 리전의
 ACM証明書を使用します。
+ACM 인증서를 사용합니다.
 """
 
 from constructs import Construct

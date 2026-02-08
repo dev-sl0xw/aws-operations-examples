@@ -5,7 +5,8 @@ AWS SAA レベルの知識を基盤に、Well-Architected Framework 6つの柱�
 
 ## Architecture
 ```
-study-book/          # 12 Markdown 学習ノート (ソクラテス式 + 現実比喩)
+study-book/          # 12 Markdown 学習ノート (日本語, ソクラテス式 + 現実比喩)
+study-book-kr/       # 12 Markdown 학습 노트 (한국어, 소크라테스식 + 현실 비유)
 cdk-projects/        # 6 AWS CDK ハンズオン
   01-iam-org-governance/      # TypeScript - IAM, Orgs, Config
   02-ssm-operations/           # Python - SSM, Patch, Parameter Store
@@ -25,9 +26,10 @@ scripts/             # セットアップヘルパー
 ## Conventions
 
 ### Study Notes Format
-- Location: `study-book/YYYY-MM-DD-SectionName.md`
-- Style: ソクラテス式 Q&A + 現実世界の比喩 (非IT向け)
-- Must include: 概要, キーコンセプト, アーキテクチャパターン, SAA試験のポイント, Well-Architected チェックリスト
+- Japanese: `study-book/YYYY-MM-DD-SectionName.md`
+- Korean: `study-book-kr/YYYY-MM-DD-SectionName.md`
+- Style: ソクラテス式 / 소크라테스식 Q&A + 현실 세계 비유 (비IT 대상)
+- Must include: 概要/개요, キーコンセプト/핵심 개념, アーキテクチャパターン/아키텍처 패턴, SAA試験のポイント/SAA 시험 포인트, Well-Architected チェックリスト/체크리스트
 
 ### CDK Project Conventions
 - TypeScript projects: `npm run build && npx cdk synth` for validation
@@ -96,6 +98,12 @@ After cloning, all projects need setup - `node_modules/` and `.venv/` are gitign
 - All stacks: verify Environment, Project, ManagedBy tags in app entry point
 
 ## Language Guidelines
-- Study notes: 日本語 (technical terms in English)
-- CDK code comments: English
+- Study notes (JP): `study-book/` — 日本語 (technical terms in English)
+- Study notes (KR): `study-book-kr/` — 한국어 (기술 용어는 영어 유지)
+- README: `README.md` (日本語), `README_KR.md` (한국어)
+- CDK code comments: Separate blocks — Japanese block first, then Korean block immediately after
+  - TypeScript: `/** JP comment */` followed by `/** KR comment */` (two separate JSDoc blocks)
+  - Python `#`: `# JP lines` block followed by `# KR lines` block
+  - Python docstring: `""" JP """` section followed by `""" KR """` section (within same docstring, separated by blank line)
+  - Do NOT interleave JP/KR lines within a single comment block
 - User communication: Korean/Japanese/English (user preference)

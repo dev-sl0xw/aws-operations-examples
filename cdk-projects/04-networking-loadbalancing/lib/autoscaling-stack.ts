@@ -50,6 +50,51 @@ import { Construct } from 'constructs';
 // タイムアウト時間内に処理が完了しない場合、デフォルトの結果（CONTINUE/ABANDON）
 // が適用される。
 // ============================================================================
+// ============================================================================
+// Auto Scaling 스택 — 자동 스케일링 설계
+// ============================================================================
+//
+// 【Auto Scaling Group이란】
+// EC2 인스턴스 그룹을 관리하고 수요에 따라 자동으로 인스턴스 수를
+// 증감시키는 메커니즘입니다. 다음 요소로 구성됩니다:
+//   - 시작 템플릿: 어떤 EC2를 시작할지에 대한 설정（AMI, 인스턴스 타입 등）
+//   - 스케일링 정책: 언제, 얼마나 스케일할지에 대한 규칙
+//   - 헬스 체크: 비정상 인스턴스를 자동으로 교체
+//
+// 【스케일링 정책의 종류】
+//
+// 1. 대상 추적 스케일링（Target Tracking）★권장
+//    「CPU 사용률을 70%로 유지」처럼 목표값을 설정하기만 하면
+//    AWS가 자동으로 인스턴스 수를 조정합니다. 가장 심플하고 효과적입니다.
+//    서모스탯처럼 동작 — 설정 온도（목표값）를 설정하면
+//    에어컨（AWS）이 자동으로 조절해줍니다.
+//
+// 2. 단계 스케일링
+//    CloudWatch 알람을 기반으로 단계적으로 스케일합니다.
+//    예: CPU 70% → +1대, CPU 85% → +2대, CPU 95% → +3대
+//    더 세밀한 제어가 필요한 경우에 사용합니다.
+//
+// 3. 심플 스케일링（비권장）
+//    하나의 알람에 하나의 액션. 쿨다운 기간 중에는
+//    새로운 스케일링이 발생하지 않습니다. 대상 추적으로 대체되고 있습니다.
+//
+// 4. 스케줄 스케일링
+//    예측 가능한 트래픽 패턴을 기반으로 사전에 스케일합니다.
+//    예: 평일 업무 시간대에 스케일 업, 야간・주말에 스케일 다운.
+//
+// 【쿨다운 기간이란】
+// 스케일링 액션 후 다음 스케일링을 실행하기까지의 대기 시간.
+// 스케일 아웃 후 인스턴스가 메트릭에 반영되기까지의
+// 시간을 확보하기 위해 필요합니다. 너무 짧으면 오실레이션（불안정한
+// 증감 반복）이 발생합니다. 기본값 300초（5분）.
+//
+// 【라이프사이클 훅이란】
+// 인스턴스 시작/종료 시 「일시 정지」하고 커스텀 처리를 실행하는 메커니즘.
+// 시작 시 훅: 소프트웨어 설치, 설정 적용, 테스트 실행
+// 종료 시 훅: 로그 백업, 세션 드레인, 클린업 처리
+// 타임아웃 시간 내에 처리가 완료되지 않으면 기본 결과（CONTINUE/ABANDON）가
+// 적용됩니다.
+// ============================================================================
 
 export interface AutoScalingStackProps extends cdk.StackProps {
   vpc: ec2.Vpc;
@@ -70,28 +115,41 @@ export class AutoScalingStack extends cdk.Stack {
     // ========================================================================
     // SSM（Systems Manager）で接続するために必要な権限。
     // SSMを使えばSSHキーの管理が不要になり、セキュリティが向上する。
+    // ========================================================================
+    // IAM 역할 — EC2 인스턴스에 부여하는 권한
+    // ========================================================================
+    // SSM（Systems Manager）으로 접속하기 위해 필요한 권한입니다.
+    // SSM을 사용하면 SSH 키 관리가 불필요해져 보안이 향상됩니다.
     const instanceRole = new iam.Role(this, 'InstanceRole', {
       assumedBy: new iam.ServicePrincipal('ec2.amazonaws.com'),
       managedPolicies: [
         iam.ManagedPolicy.fromAwsManagedPolicyName('AmazonSSMManagedInstanceCore'),
       ],
       description: 'EC2インスタンス用のIAMロール（SSMアクセス権限付き）',
+      // EC2 인스턴스용 IAM 역할（SSM 접근 권한 포함）
     });
 
     // ========================================================================
     // セキュリティグループ — ネットワークレベルのアクセス制御
     // ========================================================================
+    // ========================================================================
+    // 보안 그룹 — 네트워크 레벨의 접근 제어
+    // ========================================================================
     const instanceSg = new ec2.SecurityGroup(this, 'InstanceSecurityGroup', {
       vpc,
       description: 'Auto Scalingインスタンス用のセキュリティグループ',
+      // Auto Scaling 인스턴스용 보안 그룹
       allowAllOutbound: true, // アウトバウンドは全許可（パッチ取得等）
+      // 아웃바운드는 전체 허용（패치 취득 등）
     });
 
     // ALBからのHTTPトラフィックのみ許可（ALBのセキュリティグループからのみ受信）
+    // ALB에서의 HTTP 트래픽만 허용（ALB의 보안 그룹에서만 수신）
     instanceSg.addIngressRule(
       ec2.Peer.securityGroupId(alb.connections.securityGroups[0].securityGroupId),
       ec2.Port.tcp(80),
       'ALBからのHTTPトラフィックを許可',
+      // ALB에서의 HTTP 트래픽을 허용
     );
 
     // ========================================================================
@@ -101,26 +159,38 @@ export class AutoScalingStack extends cdk.Stack {
     // EC2インスタンスが初回起動時に実行するスクリプト。
     // ソフトウェアのインストール、設定ファイルの配置等を自動化する。
     // 注意: ユーザーデータは初回起動時のみ実行される（再起動時は実行されない）。
+    // ========================================================================
+    // 사용자 데이터 스크립트 — 인스턴스 시작 시 초기화
+    // ========================================================================
+    // 【사용자 데이터란】
+    // EC2 인스턴스가 최초 시작 시 실행하는 스크립트입니다.
+    // 소프트웨어 설치, 설정 파일 배치 등을 자동화합니다.
+    // 주의: 사용자 데이터는 최초 시작 시에만 실행됩니다（재시작 시에는 실행되지 않음）.
     const userData = ec2.UserData.forLinux();
     userData.addCommands(
       '#!/bin/bash',
       'set -euxo pipefail',
       '',
       '# システムの更新',
+      '# 시스템 업데이트',
       'yum update -y',
       '',
       '# nginxのインストールと起動',
+      '# nginx 설치 및 시작',
       'amazon-linux-extras install nginx1 -y',
       'systemctl start nginx',
       'systemctl enable nginx',
       '',
       '# ヘルスチェック用のエンドポイントを作成',
+      '# 헬스 체크용 엔드포인트 생성',
       'cat > /usr/share/nginx/html/health <<\'HEALTH_EOF\'',
       '{"status": "healthy", "timestamp": "$(date -u +%Y-%m-%dT%H:%M:%SZ)"}',
       'HEALTH_EOF',
       '',
       '# インスタンスメタデータをトップページに表示（デバッグ用）',
       '# IMDSv2トークンを取得（セキュリティ強化のためIMDSv2を使用）',
+      '# 인스턴스 메타데이터를 메인 페이지에 표시（디버그용）',
+      '# IMDSv2 토큰을 취득（보안 강화를 위해 IMDSv2를 사용）',
       'TOKEN=$(curl -sf -X PUT "http://169.254.169.254/latest/api/token" -H "X-aws-ec2-metadata-token-ttl-seconds: 21600")',
       'INSTANCE_ID=$(curl -sf -H "X-aws-ec2-metadata-token: $TOKEN" http://169.254.169.254/latest/meta-data/instance-id)',
       'AZ=$(curl -sf -H "X-aws-ec2-metadata-token: $TOKEN" http://169.254.169.254/latest/meta-data/placement/availability-zone)',
@@ -137,15 +207,23 @@ export class AutoScalingStack extends cdk.Stack {
     // ========================================================================
     // Auto Scaling Group の作成
     // ========================================================================
+    // ========================================================================
+    // Auto Scaling Group 생성
+    // ========================================================================
     this.asg = new autoscaling.AutoScalingGroup(this, 'AppAsg', {
       vpc,
       // プライベートサブネットに配置（インターネットからの直接アクセスを防ぐ）
       // ALB経由でのみアクセス可能にする
+      // 프라이빗 서브넷에 배치（인터넷에서의 직접 접근을 방지）
+      // ALB 경유로만 접근 가능하도록 설정
       vpcSubnets: { subnetType: ec2.SubnetType.PRIVATE_WITH_EGRESS },
 
       // 【インスタンスタイプの選択】
       // t3.micro: バースト可能なインスタンス。開発/テスト環境に最適。
       // 本番環境では m5.large や c5.xlarge 等、ワークロードに適したものを選ぶ。
+      // 【인스턴스 타입 선택】
+      // t3.micro: 버스트 가능한 인스턴스. 개발/테스트 환경에 최적.
+      // 프로덕션 환경에서는 m5.large나 c5.xlarge 등 워크로드에 적합한 것을 선택.
       instanceType: ec2.InstanceType.of(
         ec2.InstanceClass.T3,
         ec2.InstanceSize.MICRO,
@@ -154,6 +232,9 @@ export class AutoScalingStack extends cdk.Stack {
       // 【AMIの選択】
       // Amazon Linux 2は無料でAWSに最適化されたLinuxディストリビューション。
       // SSMエージェントが標準でインストールされている。
+      // 【AMI 선택】
+      // Amazon Linux 2는 무료이며 AWS에 최적화된 Linux 배포판입니다.
+      // SSM 에이전트가 기본으로 설치되어 있습니다.
       machineImage: ec2.MachineImage.latestAmazonLinux2(),
 
       role: instanceRole,
@@ -167,6 +248,12 @@ export class AutoScalingStack extends cdk.Stack {
       // maxCapacity: 最大インスタンス数。コスト上限の安全弁。
       //              予想されるピークトラフィックに十分な数を設定する。
       // desiredCapacity: 初期のインスタンス数。Auto Scalingが自動調整する。
+      // 【용량 설정】
+      // minCapacity: 최소 인스턴스 수. 0으로 설정하면 전체 정지 위험이 있습니다.
+      //              프로덕션 환경에서는 최소 2（AZ당 1대）를 권장합니다.
+      // maxCapacity: 최대 인스턴스 수. 비용 상한의 안전 장치입니다.
+      //              예상되는 피크 트래픽에 충분한 수를 설정합니다.
+      // desiredCapacity: 초기 인스턴스 수. Auto Scaling이 자동 조정합니다.
       minCapacity: 1,
       maxCapacity: 4,
       desiredCapacity: 2,
@@ -175,6 +262,10 @@ export class AutoScalingStack extends cdk.Stack {
       // インスタンス起動後、ヘルスチェックを開始するまでの待機時間。
       // ユーザーデータの実行やアプリケーションの起動に必要な時間を確保する。
       // 短すぎるとまだ起動中のインスタンスが異常と判定されてしまう。
+      // 【헬스 체크 유예 기간】
+      // 인스턴스 시작 후 헬스 체크를 시작하기까지의 대기 시간입니다.
+      // 사용자 데이터 실행이나 애플리케이션 시작에 필요한 시간을 확보합니다.
+      // 너무 짧으면 아직 시작 중인 인스턴스가 비정상으로 판정됩니다.
       healthChecks: autoscaling.HealthChecks.ec2({
         gracePeriod: cdk.Duration.seconds(300),
       }),
@@ -182,6 +273,9 @@ export class AutoScalingStack extends cdk.Stack {
       // 【クールダウン期間】
       // スケーリングアクション後、次のスケーリングを実行するまでの待機時間。
       // 新しいインスタンスがメトリクスに反映されるまでの時間を確保する。
+      // 【쿨다운 기간】
+      // 스케일링 액션 후 다음 스케일링을 실행하기까지의 대기 시간입니다.
+      // 새로운 인스턴스가 메트릭에 반영되기까지의 시간을 확보합니다.
       cooldown: cdk.Duration.seconds(300),
     });
 
@@ -191,6 +285,12 @@ export class AutoScalingStack extends cdk.Stack {
     // ASGのインスタンスをALBのターゲットグループに自動的に登録する。
     // 新しいインスタンスが起動するとターゲットグループに追加され、
     // 終了するインスタンスは自動的に削除される。
+    // ========================================================================
+    // ALB 타겟 그룹에 등록
+    // ========================================================================
+    // ASG의 인스턴스를 ALB의 타겟 그룹에 자동으로 등록합니다.
+    // 새로운 인스턴스가 시작되면 타겟 그룹에 추가되고,
+    // 종료되는 인스턴스는 자동으로 삭제됩니다.
     this.asg.attachToApplicationTargetGroup(albTargetGroup);
 
     // ========================================================================
@@ -204,12 +304,26 @@ export class AutoScalingStack extends cdk.Stack {
     //   - 100%に近すぎると、急なトラフィック増加時にスケールが間に合わない
     //   - 50%等低すぎると、過剰なインスタンスが維持されコストが増大する
     //   - 70%は、応答時間の維持とコスト効率のバランスが良い値
+    // ========================================================================
+    // 대상 추적 스케일링 정책
+    // ========================================================================
+    // 【왜 대상 추적이 가장 심플한가】
+    // 「CPU 사용률을 70%로 유지」라고 선언하기만 하면 AWS가 자동으로
+    // 스케일 아웃/인 판단을 수행합니다. CloudWatch 알람 생성도 자동입니다.
+    //
+    // 70%를 선택하는 이유:
+    //   - 100%에 너무 가까우면 급격한 트래픽 증가 시 스케일이 늦어짐
+    //   - 50% 등 너무 낮으면 과잉 인스턴스가 유지되어 비용이 증대
+    //   - 70%는 응답 시간 유지와 비용 효율의 균형이 좋은 값
     this.asg.scaleOnCpuUtilization('CpuScaling', {
       targetUtilizationPercent: 70,
       // クールダウン: スケールアウト後の安定化待ち時間
+      // 쿨다운: 스케일 아웃 후 안정화 대기 시간
       cooldown: cdk.Duration.seconds(300),
       // スケールインのクールダウン（オプション）
       // スケールインはより慎重に行う（ユーザー体験に影響するため）
+      // 스케일 인의 쿨다운（옵션）
+      // 스케일 인은 더 신중하게 수행（사용자 경험에 영향을 미치므로）
       estimatedInstanceWarmup: cdk.Duration.seconds(300),
     });
 
@@ -224,8 +338,20 @@ export class AutoScalingStack extends cdk.Stack {
     // スケジュール式はcron式で指定する:
     //   cron(分 時 日 月 曜日)
     //   曜日: 1=月曜日、5=金曜日（AWS cron式）
+    // ========================================================================
+    // 스케줄 스케일링 — 업무 시간대의 사전 스케일
+    // ========================================================================
+    // 【예측 가능한 트래픽 패턴에 대한 대응】
+    // 업무 애플리케이션은 평일 9시〜18시에 트래픽이 집중됩니다.
+    // 사전에 스케일 업해 두면 아침 트래픽 급증 시
+    // 대상 추적 스케일링을 기다릴 필요가 없어집니다.
+    //
+    // 스케줄 식은 cron 식으로 지정합니다:
+    //   cron(분 시 일 월 요일)
+    //   요일: 1=월요일, 5=금요일（AWS cron 식）
 
     // 平日の朝9時（UTC+9 = JST。UTCでは0時）にスケールアップ
+    // 평일 아침 9시（UTC+9 = JST. UTC로는 0시）에 스케일 업
     this.asg.scaleOnSchedule('ScaleUpMorning', {
       schedule: autoscaling.Schedule.cron({
         hour: '0',   // UTC 0:00 = JST 9:00
@@ -238,6 +364,7 @@ export class AutoScalingStack extends cdk.Stack {
     });
 
     // 平日の夜18時（UTC+9 = JST。UTCでは9時）にスケールダウン
+    // 평일 저녁 18시（UTC+9 = JST. UTC로는 9시）에 스케일 다운
     this.asg.scaleOnSchedule('ScaleDownEvening', {
       schedule: autoscaling.Schedule.cron({
         hour: '9',   // UTC 9:00 = JST 18:00
@@ -266,6 +393,23 @@ export class AutoScalingStack extends cdk.Stack {
     //             （初期化が必須でない場合）
     //   ABANDON: タイムアウトしたらインスタンスを終了する
     //            （初期化が必須の場合、不完全なインスタンスを防ぐ）
+    // ========================================================================
+    // 라이프사이클 훅 — 인스턴스 시작 시 커스텀 초기화
+    // ========================================================================
+    // 【라이프사이클 훅의 동작】
+    // 1. ASG가 새로운 인스턴스를 시작합니다
+    // 2. 시작 훅에 의해 인스턴스는「Pending:Wait」상태로 일시 정지
+    // 3. 커스텀 초기화 처리를 실행（Lambda, SSM 등으로 구현）
+    //    예: 설정 관리 도구 적용, 시크릿 배치, 테스트 실행
+    // 4. 처리 완료 후 CONTINUE 시그널을 전송하여 인스턴스를 가동 개시
+    // 5. 타임아웃（여기서는 300초）이내에 시그널이 없으면
+    //    defaultResult의 동작이 적용됩니다
+    //
+    // defaultResult의 선택:
+    //   CONTINUE: 타임아웃되어도 인스턴스를 서비스 인시킴
+    //             （초기화가 필수가 아닌 경우）
+    //   ABANDON: 타임아웃되면 인스턴스를 종료
+    //            （초기화가 필수인 경우, 불완전한 인스턴스를 방지）
     this.asg.addLifecycleHook('LaunchHook', {
       lifecycleTransition: autoscaling.LifecycleTransition.INSTANCE_LAUNCHING,
       heartbeatTimeout: cdk.Duration.seconds(300),
@@ -278,12 +422,14 @@ export class AutoScalingStack extends cdk.Stack {
     new cdk.CfnOutput(this, 'AsgName', {
       value: this.asg.autoScalingGroupName,
       description: 'Auto Scaling Groupの名前',
+      // Auto Scaling Group의 이름
       exportName: 'NetworkingAsgName',
     });
 
     new cdk.CfnOutput(this, 'AsgArn', {
       value: this.asg.autoScalingGroupArn,
       description: 'Auto Scaling GroupのARN',
+      // Auto Scaling Group의 ARN
     });
   }
 }
