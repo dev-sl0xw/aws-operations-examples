@@ -44,14 +44,15 @@ scripts/             # セットアップヘルパー
 - Build TS project: `cd cdk-projects/<project> && npm run build`
 - Test TS project: `cd cdk-projects/<project> && npm test`
 - Test Python project: `cd cdk-projects/<project> && python -m pytest tests/`
-- Synth any project: `cd cdk-projects/<project> && npx cdk synth` (TS) or `cdk synth` (Python)
+- Synth TS project: `cd cdk-projects/<project> && npx cdk synth`
+- Synth Python project: `cd cdk-projects/<project> && npx cdk synth --app ".venv/bin/python3 app.py"`
 
 ## Important Notes
 - Never deploy (`cdk deploy`) without explicit user confirmation - this is a learning project
 - Python projects need `source .venv/bin/activate` before running commands
 - `.gitignore` excludes `node_modules/`, `.venv/`, `cdk.out/`, `*.js` (TS compiled)
 
-### Quick Start
+## Quick Start
 ```bash
 # TypeScript プロジェクト (01, 03, 04)
 ./scripts/setup-ts-project.sh cdk-projects/01-iam-org-governance
@@ -69,6 +70,7 @@ After cloning, all projects need setup - `node_modules/` and `.venv/` are gitign
 - `.gitignore` excludes `*.js` (TypeScript compiled output) - add `!filename.js` for intentional JS files
 - Python CDK projects require `source .venv/bin/activate` before ANY cdk/pytest command
 - `cdk.context.json` is gitignored - AZ lookups will re-run on fresh clones
+- Python `cdk synth` ignores venv activation — use `--app ".venv/bin/python3 app.py"` to ensure correct interpreter
 
 ## Agent Patterns
 - Prefer Task tool subagents (`run_in_background: true`) over experimental agent teams for parallel work
