@@ -1,0 +1,49 @@
+graph TB
+    Internet[Internet/Users] --> CloudFront
+
+    subgraph Edge["Edge Layer"]
+        CloudFront[CloudFront CDN]
+        WAF[AWS WAF<br/>SQLi, XSS, Rate Limit]
+    end
+
+    subgraph Network["Network Layer"]
+        ALB[Application Load Balancer]
+        NACL[Network ACLs<br/>Stateless]
+        SG[Security Groups<br/>Stateful]
+    end
+
+    subgraph Compute["Compute Layer"]
+        EC2[EC2 / Lambda]
+        IAM[IAM Roles<br/>Least Privilege]
+        PermBound[Permission Boundaries]
+    end
+
+    subgraph Data["Data Layer"]
+        S3[S3 Encryption]
+        EBS[EBS Encryption]
+        KMS[AWS KMS]
+    end
+
+    subgraph Detective["Detective Controls"]
+        CT[CloudTrail<br/>API Logging]
+        GD[GuardDuty<br/>Threat Detection]
+        Insp[Inspector<br/>Vulnerability Scan]
+        Config[AWS Config<br/>Compliance]
+    end
+
+    CloudFront --> WAF
+    WAF --> ALB
+    ALB --> NACL
+    NACL --> SG
+    SG --> EC2
+    EC2 --> IAM
+    IAM --> PermBound
+    EC2 --> S3
+    EC2 --> EBS
+    S3 --> KMS
+    EBS --> KMS
+
+    EC2 -.-> CT
+    EC2 -.-> GD
+    EC2 -.-> Insp
+    S3 -.-> Config
