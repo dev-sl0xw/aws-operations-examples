@@ -51,11 +51,24 @@ scripts/             # セットアップヘルパー
 - Python projects need `source .venv/bin/activate` before running commands
 - `.gitignore` excludes `node_modules/`, `.venv/`, `cdk.out/`, `*.js` (TS compiled)
 
-### Project Setup Status
-- TS 01 (iam-org-governance): `npm install` required before first use
-- TS 03 (monitoring): `npm install` already done, node_modules present
-- TS 04 (networking): `npm install` already done, node_modules present
-- Python 02, 05, 06: `python3 -m venv .venv && source .venv/bin/activate && pip install -r requirements.txt` required before first use
+### Quick Start
+```bash
+# TypeScript プロジェクト (01, 03, 04)
+./scripts/setup-ts-project.sh cdk-projects/01-iam-org-governance
+
+# Python プロジェクト (02, 05, 06)
+./scripts/setup-py-project.sh cdk-projects/02-ssm-operations
+```
+After cloning, all projects need setup - `node_modules/` and `.venv/` are gitignored.
+
+## Hooks (auto-configured in .claude/settings.json)
+- **PostToolUse**: TS ファイル (lib/, bin/) 編集後に `tsc --noEmit` を自動実行
+- **PreToolUse**: `.env`, `credentials`, `secret` を含むファイルの編集をブロック
+
+## Gotchas
+- `.gitignore` excludes `*.js` (TypeScript compiled output) - add `!filename.js` for intentional JS files
+- Python CDK projects require `source .venv/bin/activate` before ANY cdk/pytest command
+- `cdk.context.json` is gitignored - AZ lookups will re-run on fresh clones
 
 ## Agent Patterns
 - Prefer Task tool subagents (`run_in_background: true`) over experimental agent teams for parallel work
