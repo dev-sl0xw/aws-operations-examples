@@ -1,0 +1,66 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test-typescript:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        project:
+          - 01-iam-org-governance
+          - 03-monitoring-observability
+          - 04-networking-loadbalancing
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+          cache-dependency-path: cdk-projects/${{ matrix.project }}/package-lock.json
+      - name: Install dependencies
+        working-directory: cdk-projects/${{ matrix.project }}
+        run: npm ci
+      - name: Build
+        working-directory: cdk-projects/${{ matrix.project }}
+        run: npm run build
+      - name: Test
+        working-directory: cdk-projects/${{ matrix.project }}
+        run: npm test
+      - name: CDK Synth
+        working-directory: cdk-projects/${{ matrix.project }}
+        run: npx cdk synth --quiet
+
+  test-python:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        project:
+          - 02-ssm-operations
+          - 05-security-edge
+          - 06-storage-backup
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+      - name: Install CDK CLI
+        run: npm install -g aws-cdk
+      - name: Create venv and install dependencies
+        working-directory: cdk-projects/${{ matrix.project }}
+        run: |
+          python -m venv .venv
+          .venv/bin/pip install -r requirements.txt
+      - name: Test
+        working-directory: cdk-projects/${{ matrix.project }}
+        run: .venv/bin/python -m pytest tests/
+      - name: CDK Synth
+        working-directory: cdk-projects/${{ matrix.project }}
+        run: npx cdk synth --app ".venv/bin/python3 app.py" --quiet

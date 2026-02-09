@@ -58,7 +58,7 @@ SSM Agent는 각 EC2 인스턴스에 사전 설치되어 있는(Amazon Linux 2 �
 【왜 S3에 데이터를 집약하는가】
 
 Resource Data Sync를 사용하여 인벤토리 데이터를 S3에 집약하는 이유:
-1. Athena로 크로스 어카운트·크로스 리전의 SQL 분석이 가능해진다
+1. Athena로 크로스 계정·크로스 리전의 SQL 분석이 가능해진다
 2. QuickSight로 대시보드화할 수 있다
 3. 데이터의 장기 보존과 컴플라이언스 감사에 대응할 수 있다
 4. Lambda 등을 사용한 자동 알림(미승인 소프트웨어 감지 등)을 구현할 수 있다
@@ -177,7 +177,7 @@ class SsmInventoryStack(Stack):
         # - Windows Updates (Windows만)
         # - Custom Inventory (커스텀 스키마)
         #
-        # InstanceIds: ["*"]를 지정하면, 어카운트 내의 전 매니지드 인스턴스가
+        # InstanceIds: ["*"]를 지정하면, 계정 내의 전 매니지드 인스턴스가
         # 대상이 됩니다. 운영 환경에서는 태그 기반의 타겟팅을 권장합니다.
         # 예: Key=tag:Environment, Values=production
         inventory_association = ssm.CfnAssociation(
@@ -228,12 +228,12 @@ class SsmInventoryStack(Stack):
         # ====================================================================
         # Resource Data Sync: 인벤토리 데이터의 S3 집약
         # ====================================================================
-        # Resource Data Sync는 복수 리전·복수 어카운트의 인벤토리 데이터를
+        # Resource Data Sync는 복수 리전·복수 계정의 인벤토리 데이터를
         # 하나의 S3 버킷에 자동 동기하는 메커니즘입니다.
         #
         # 이에 의해 다음이 실현됩니다:
-        # - Amazon Athena에서의 크로스 어카운트 쿼리
-        #   예: "전 어카운트에서 Log4j 2.x가 설치된 인스턴스는?"
+        # - Amazon Athena에서의 크로스 계정 쿼리
+        #   예: "전 계정에서 Log4j 2.x가 설치된 인스턴스는?"
         # - Amazon QuickSight에서의 가시화 대시보드
         # - AWS Config와의 연동에 의한 컴플라이언스 체크
         #

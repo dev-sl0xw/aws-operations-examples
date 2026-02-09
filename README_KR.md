@@ -46,6 +46,12 @@ AWS SAA 수준의 지식을 기반으로, **Well-Architected Framework 6가지 �
 11. [Edge & CDN](study-book-kr/2026-02-10-EdgeSecurityCDN.md)
 12. [Storage & Backup](study-book-kr/2026-02-10-StorageBackup.md)
 
+### Day 4: Serverless, Container & DevOps
+13. [Lambda & 서버리스 운영](study-book-kr/2026-02-11-LambdaServerless.md)
+14. [컨테이너 운영](study-book-kr/2026-02-11-ContainerOperations.md) (ECS, EKS, Fargate)
+15. [데이터베이스 운영](study-book-kr/2026-02-11-DatabaseOperations.md) (RDS, Aurora, DynamoDB)
+16. [CI/CD & DevOps](study-book-kr/2026-02-11-CICDDevOps.md)
+
 ## CDK Hands-on
 
 | # | 프로젝트 | 언어 | 셋업 |
@@ -152,7 +158,8 @@ AWS SAA 수준의 지식을 기반으로, **Well-Architected Framework 6가지 �
 | Day 1 전체 | 3 - 4시간 | 노트 4개 + CDK 01, 02 |
 | Day 2 전체 | 3 - 4시간 | 노트 4개 + CDK 03, 04 |
 | Day 3 전체 | 3 - 4시간 | 노트 4개 + CDK 05, 06 |
-| **전체 합계** | **약 10 - 12시간** | 3일간의 집중 학습을 상정 |
+| Day 4 전체 | 3 - 4시간 | 노트 4개 (응용 토픽) |
+| **전체 합계** | **약 13 - 16시간** | 4일간의 집중 학습을 상정 |
 
 ## 핵심 개념 색인
 
@@ -180,3 +187,11 @@ AWS SAA 수준의 지식을 기반으로, **Well-Architected Framework 6가지 �
 | WAF | Section 11 | 빌딩 입구 보안 게이트 |
 | S3 Lifecycle | Section 12 | 서류의 창고 이동 (책상 -> 창고 -> 장기 보관) |
 | AWS Backup | Section 12 | 통합 백업 금고 |
+| Lambda Cold Start | Section 13 | 폐점 중인 레스토랑이 주문을 받고 나서 개점하기 |
+| Step Functions | Section 13 | 요리 레시피 (공정의 순서 관리) |
+| ECS Fargate | Section 14 | 관리인 딸린 아파트 (서버 관리 불필요) |
+| ECS vs EKS | Section 14 | 전용 택시 vs 노선 버스 |
+| RDS Multi-AZ | Section 15 | 정·부 금고 (자동 전환) |
+| DynamoDB | Section 15 | 거대한 해시맵 (Key-Value) |
+| Blue/Green Deploy | Section 16 | 무대 장면 전환 (관객 모르게 전환) |
+| CodePipeline | Section 16 | 공장 조립 라인 (자동화) |

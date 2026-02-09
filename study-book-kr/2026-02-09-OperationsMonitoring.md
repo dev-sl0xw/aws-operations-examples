@@ -125,18 +125,18 @@ Logs Insights        Composite Alarms
 - **알람 층:** 개별 알람 → Composite Alarms → 알림 및 자동 대응
 - **분석 층:** Logs Insights로 애드혹 쿼리, 대시보드로 시각화
 
-### 패턴2: 크로스 어카운트 감시
+### 패턴2: 크로스 계정 감시
 
 ```
-[어카운트A] → CloudWatch Metrics/Logs
-[어카운트B] → CloudWatch Metrics/Logs    →  [감시 어카운트]
-[어카운트C] → CloudWatch Metrics/Logs         Cross-Account Dashboard
+[계정A] → CloudWatch Metrics/Logs
+[계정B] → CloudWatch Metrics/Logs    →  [감시 계정]
+[계정C] → CloudWatch Metrics/Logs         Cross-Account Dashboard
 ```
 
-- Organizations 환경에서 여러 어카운트를 일원 감시
+- Organizations 환경에서 여러 계정를 일원 감시
 - CloudWatch Cross-Account Observability로 실현
-- 감시 어카운트에 대시보드를 집약
-- 어카운트 간 메트릭과 로그를 횡단적으로 분석 가능
+- 감시 계정에 대시보드를 집약
+- 계정 간 메트릭과 로그를 횡단적으로 분석 가능
 
 ### 패턴3: 메트릭 필터에 의한 로그에서 메트릭으로의 변환
 
@@ -225,5 +225,5 @@ Application → CloudWatch Logs → Metric Filter ("ERROR") → Custom Metric
 - [ ] 운영 대시보드를 구축하여 시스템 전체의 건전성을 한눈에 파악할 수 있는가
 - [ ] Anomaly Detection을 활용하여, 정적 임계값으로는 감지 어려운 이상을 감출하고 있는가
 - [ ] Logs Insights의 쿼리를 런북(운영 절차서)에 포함하고 있는가
-- [ ] 크로스 어카운트 감시가 필요한 경우, Cross-Account Observability를 설정하고 있는가
+- [ ] 크로스 계정 감시가 필요한 경우, Cross-Account Observability를 설정하고 있는가
 - [ ] 알람 액션으로서 자동 복구(Auto Scaling, EC2 Recovery)를 설정하고 있는가

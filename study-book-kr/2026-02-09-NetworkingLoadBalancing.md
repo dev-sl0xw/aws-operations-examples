@@ -182,7 +182,7 @@ Route 53 Health Check → Primary ALB의 헬스 체크 엔드포인트
   Application → VPC Endpoint (Interface) → PrivateLink → NLB
 ```
 
-- NLB를 전면에 배치한 서비스를 PrivateLink로 다른 어카운트에 공개
+- NLB를 전면에 배치한 서비스를 PrivateLink로 다른 계정에 공개
 - 인터넷을 경유하지 않고, AWS 네트워크 내에서 안전하게 통신
 - ALB에서는 PrivateLink를 직접 사용할 수 없음(NLB가 필요)
 

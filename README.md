@@ -44,6 +44,12 @@ AWS SAA レベルの知識を基盤に、**Well-Architected Framework 6つの柱
 11. [エッジ & CDN](study-book/2026-02-10-EdgeSecurityCDN.md)
 12. [ストレージ & バックアップ](study-book/2026-02-10-StorageBackup.md)
 
+### Day 4: サーバーレス, コンテナ & DevOps
+13. [Lambda & サーバーレス運用](study-book/2026-02-11-LambdaServerless.md)
+14. [コンテナ運用](study-book/2026-02-11-ContainerOperations.md) (ECS, EKS, Fargate)
+15. [データベース運用](study-book/2026-02-11-DatabaseOperations.md) (RDS, Aurora, DynamoDB)
+16. [CI/CD & DevOps](study-book/2026-02-11-CICDDevOps.md)
+
 ## CDK ハンズオン
 
 | # | プロジェクト | 言語 | セットアップ |
@@ -150,7 +156,8 @@ AWS SAA レベルの知識を基盤に、**Well-Architected Framework 6つの柱
 | Day 1 全体 | 3 - 4 時間 | ノート4本 + CDK 01, 02 |
 | Day 2 全体 | 3 - 4 時間 | ノート4本 + CDK 03, 04 |
 | Day 3 全体 | 3 - 4 時間 | ノート4本 + CDK 05, 06 |
-| **全体合計** | **約 10 - 12 時間** | 3日間の集中学習を想定 |
+| Day 4 全体 | 3 - 4 時間 | ノート4本 (応用トピック) |
+| **全体合計** | **約 13 - 16 時間** | 4日間の集中学習を想定 |
 
 ## キーコンセプト索引
 
@@ -178,3 +185,11 @@ AWS SAA レベルの知識を基盤に、**Well-Architected Framework 6つの柱
 | WAF | Section 11 | ビルの入口セキュリティゲート |
 | S3 ライフサイクル | Section 12 | 書類の倉庫移動 (デスク -> 倉庫 -> 長期保管) |
 | AWS Backup | Section 12 | 統合バックアップ金庫 |
+| Lambda Cold Start | Section 13 | 閉店中のレストランが注文を受けてから開店する |
+| Step Functions | Section 13 | 料理のレシピ (工程の順序管理) |
+| ECS Fargate | Section 14 | テナント管理付きマンション (サーバー管理不要) |
+| ECS vs EKS | Section 14 | 専用タクシー vs 路線バス |
+| RDS Multi-AZ | Section 15 | 正副の金庫 (自動切り替え) |
+| DynamoDB | Section 15 | 巨大なハッシュマップ (キーバリュー) |
+| Blue/Green デプロイ | Section 16 | 舞台の場面転換 (観客に気づかれずに切り替え) |
+| CodePipeline | Section 16 | 工場の組立ライン (自動化) |

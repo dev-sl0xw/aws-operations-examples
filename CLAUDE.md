@@ -5,8 +5,8 @@ AWS SAA レベルの知識を基盤に、Well-Architected Framework 6つの柱�
 
 ## Architecture
 ```
-study-book/          # 12 Markdown 学習ノート (日本語, ソクラテス式 + 現実比喩)
-study-book-kr/       # 12 Markdown 학습 노트 (한국어, 소크라테스식 + 현실 비유)
+study-book/          # 16 Markdown 学習ノート (日本語, ソクラテス式 + 現実比喩)
+study-book-kr/       # 16 Markdown 학습 노트 (한국어, 소크라테스식 + 현실 비유)
 cdk-projects/        # 6 AWS CDK ハンズオン
   01-iam-org-governance/      # TypeScript - IAM, Orgs, Config
   02-ssm-operations/           # Python - SSM, Patch, Parameter Store

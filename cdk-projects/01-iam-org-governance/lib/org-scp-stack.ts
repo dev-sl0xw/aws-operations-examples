@@ -51,14 +51,14 @@ import { Construct } from 'constructs';
  *
  * ■ SCP란 무엇인가? 왜 중요한가?
  *
- *   SCP (Service Control Policy)는 AWS Organizations 내의 어카운트에 대한
+ *   SCP (Service Control Policy)는 AWS Organizations 내의 계정에 대한
  *   "가드레일"입니다. 이것은 권한의 "부여"가 아니라 "상한 설정"입니다.
  *
  *   중요한 개념:
  *   - SCP는 권한을 "부여하지 않음" → IAM 정책이 권한을 부여
  *   - SCP는 권한의 "최대 범위"를 제한 → 필터로서 기능
- *   - SCP는 루트 어카운트에도 적용됨 → IAM 정책으로는 불가능
- *   - SCP는 관리 어카운트에는 적용되지 않음 → 관리 어카운트는 특별한 보호가 필요
+ *   - SCP는 루트 계정에도 적용됨 → IAM 정책으로는 불가능
+ *   - SCP는 관리 계정에는 적용되지 않음 → 관리 계정는 특별한 보호가 필요
  *
  *   비유:
  *   IAM 정책 = "직원에게 건네는 열쇠" (특정 문을 여는 권한)
@@ -83,9 +83,9 @@ import { Construct } from 'constructs';
  *
  * ■ 주의사항
  *   이 Stack은 Organizations API를 직접 호출하지 않습니다.
- *   Organizations 조작에는 관리 어카운트에서의 셋업이 필요합니다.
+ *   Organizations 조작에는 관리 계정에서의 셋업이 필요합니다.
  *   여기서는 정책 문서의 정의와 출력에 초점을 맞추고,
- *   실제 디플로이는 Organizations 관리 어카운트에서 수행하는 것을 상정합니다.
+ *   실제 디플로이는 Organizations 관리 계정에서 수행하는 것을 상정합니다.
  */
 export class OrgScpStack extends cdk.Stack {
   constructor(scope: Construct, id: string, props?: cdk.StackProps) {
@@ -190,7 +190,7 @@ export class OrgScpStack extends cdk.Stack {
     /**
      * ■ 왜 보안 서비스의 비활성화를 금지하는가?
      *
-     *   공격자가 AWS 어카운트에 침입한 경우, 최초로 수행하는 것은
+     *   공격자가 AWS 계정에 침입한 경우, 최초로 수행하는 것은
      *   보안 감시의 비활성화입니다. 이에 의해:
      *   - CloudTrail 중지 → API 호출 기록이 사라짐 → 증적을 은폐
      *   - GuardDuty 중지 → 위협 감지가 멈춤 → 의심스러운 행동이 감지되지 않음
@@ -300,15 +300,15 @@ export class OrgScpStack extends cdk.Stack {
      *   - 패스워드가 영속적 → 유출 리스크가 항상 존재
      *   - 액세스 키가 영속적 → 코드나 로그에 혼입되는 리스크
      *   - MFA 설정이 각 사용자 임의 → 설정 누락 리스크
-     *   - 사용자 관리가 분산 → 어카운트마다 사용자를 관리할 필요
-     *   - 퇴직자 대응이 곤란 → 전 어카운트의 IAM 사용자를 개별 삭제
+     *   - 사용자 관리가 분산 → 계정마다 사용자를 관리할 필요
+     *   - 퇴직자 대응이 곤란 → 전 계정의 IAM 사용자를 개별 삭제
      *
      *   SSO (IAM Identity Center)의 장점:
      *   - 인증의 일원 관리 → Active Directory/Okta/Azure AD와 통합
      *   - 일시적인 인증 정보 → 세션 기반으로 액세스
      *   - MFA 일원 관리 → IdP 측에서 강제 가능
-     *   - 퇴직자 대응이 용이 → IdP에서 어카운트 비활성화하면 전 액세스가 중지
-     *   - 감사가 용이 → 누가 어떤 어카운트에 언제 액세스했는지 일원 관리
+     *   - 퇴직자 대응이 용이 → IdP에서 계정 비활성화하면 전 액세스가 중지
+     *   - 감사가 용이 → 누가 어떤 계정에 언제 액세스했는지 일원 관리
      *
      *   이 SCP는 IAM 사용자의 생성과 콘솔 패스워드 설정을
      *   금지함으로써, SSO 사용을 강제합니다.
@@ -327,7 +327,7 @@ export class OrgScpStack extends cdk.Stack {
           Resource: '*',
           // 例外: 自動化パイプラインによるサービスアカウントの作成は
           // 特定の条件で許可することも検討可能
-          // 예외: 자동화 파이프라인에 의한 서비스 어카운트 생성은
+          // 예외: 자동화 파이프라인에 의한 서비스 계정 생성은
           // 특정 조건에서 허가하는 것도 검토 가능
           // Condition: {
           //   StringNotLike: {
@@ -345,7 +345,7 @@ export class OrgScpStack extends cdk.Stack {
           // アクセスキーの作成を禁止
           // サービスアカウントが必要な場合は、IAMロール + AssumeRole を使用
           // 액세스 키 생성을 금지
-          // 서비스 어카운트가 필요한 경우는, IAM 역할 + AssumeRole을 사용
+          // 서비스 계정가 필요한 경우는, IAM 역할 + AssumeRole을 사용
         },
       ],
     };
@@ -371,7 +371,7 @@ export class OrgScpStack extends cdk.Stack {
      *   - S3 버킷 정책에서의 퍼블릭 액세스 허가 금지
      *   - RDS 인스턴스의 퍼블릭 액세스 금지
      *   - EC2 인스턴스의 IMDSv1 사용 금지 (SSRF 공격 대책)
-     *   - 루트 어카운트의 액션을 제한
+     *   - 루트 계정의 액션을 제한
      */
     const additionalGuardrailsPolicy = {
       Version: '2012-10-17',
@@ -413,7 +413,7 @@ export class OrgScpStack extends cdk.Stack {
           Resource: '*',
           // メンバーアカウントが組織を離脱することを防止
           // 離脱するとSCPが適用されなくなるため
-          // 멤버 어카운트가 조직을 이탈하는 것을 방지
+          // 멤버 계정가 조직을 이탈하는 것을 방지
           // 이탈하면 SCP가 적용되지 않게 되므로
         },
       ],
@@ -450,7 +450,7 @@ export class OrgScpStack extends cdk.Stack {
      * ■ 권장 OU 구조:
      *
      *   Root
-     *   ├── Security OU          ← 보안 감사·로그 집약 어카운트
+     *   ├── Security OU          ← 보안 감사·로그 집약 계정
      *   │   ├── Log Archive Account
      *   │   └── Security Tooling Account
      *   ├── Infrastructure OU    ← 공유 인프라 (네트워크, DNS 등)
@@ -463,7 +463,7 @@ export class OrgScpStack extends cdk.Stack {
      *   │   └── Non-Production OU
      *   │       ├── Dev Accounts
      *   │       └── Staging Accounts
-     *   └── Suspended OU         ← 폐지 예정 어카운트 (전 액션 거부)
+     *   └── Suspended OU         ← 폐지 예정 계정 (전 액션 거부)
      *
      *   각 OU에 적절한 SCP를 적용함으로써, 계층적 거버넌스를 실현합니다.
      *   예: Sandbox OU에는 완화된 SCP, Production OU에는 엄격한 SCP

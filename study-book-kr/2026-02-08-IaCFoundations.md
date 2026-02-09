@@ -252,7 +252,7 @@ cdk-app/
 
 각 스택을 기능별로 분리하고, `cdk.json`의 context 또는 환경 변수로 dev/stg/prod를 전환한다. 스택 간 의존은 `Export/Import` 또는 CDK의 직접 참조로 해결한다.
 
-### 패턴2: 멀티 어카운트 및 멀티 리전
+### 패턴2: 멀티 계정 및 멀티 리전
 
 ```
 Organizations Root
@@ -265,7 +265,7 @@ Organizations Root
         └── Account: stg
 ```
 
-CloudFormation StackSets를 사용하여 여러 어카운트 및 여러 리전에 일괄 배포. Service Catalog와 Organizations의 통합으로 승인된 제품을 전체 어카운트에 배포한다.
+CloudFormation StackSets를 사용하여 여러 계정 및 여러 리전에 일괄 배포. Service Catalog와 Organizations의 통합으로 승인된 제품을 전체 계정에 배포한다.
 
 ### 패턴3: CI/CD 파이프라인에 의한 IaC 배포
 
@@ -284,7 +284,7 @@ CDK의 `cdk synth`로 템플릿을 생성하고, 유닛 테스트와 스냅샷 �
 - **드리프트 감지**는 모든 리소스 유형을 지원하지 않는다. 지원되는 리소스는 AWS 문서에서 확인 필요.
 - **스택 업데이트 시 동작**에는 3종류가 있다: Update with No Interruption (중단 없음), Update with Some Interruption (일부 중단), Replacement (교체 = 기존 리소스 삭제 + 신규 생성).
 - **DeletionPolicy**는 스택 삭제 시 리소스의 처리를 제어한다. `Retain` (유지), `Snapshot` (스냅샷 취득 후 삭제), `Delete` (삭제, 기본값).
-- **StackSets**는 Organizations와 연계하여 여러 어카운트 및 리전에 일괄 배포. 관리 어카운트 또는 위임 관리자 어카운트에서 조작한다.
+- **StackSets**는 Organizations와 연계하여 여러 계정 및 리전에 일괄 배포. 관리 계정 또는 위임 관리자 계정에서 조작한다.
 - **Service Catalog의 시작 제약**을 사용하면 최종 사용자에게 CloudFormation 권한을 직접 부여하지 않고 제품을 프로비저닝할 수 있다.
 - **Mappings**는 배포 시 변경 불가한 정적 테이블. 리전별 AMI ID와 같은 고정값 참조에 사용. **Parameters**는 동적 입력.
 - **CloudFormation Change Sets**는 업데이트 전에 변경 내용을 미리보기하는 기능. 실제 변경은 적용할 때까지 이루어지지 않는다.
